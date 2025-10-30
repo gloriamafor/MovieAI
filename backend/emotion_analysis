@@ -1,0 +1,85 @@
+import streamlit as st
+from transformers import pipeline
+from utils import fetch_movies_by_genres, fetch_genres, generate_ai_poster
+import random
+
+# ------------------------------
+# Streamlit Setup
+# ------------------------------
+st.set_page_config(page_title="MoodFlix 2.0 🎬", page_icon="🎥", layout="wide")
+st.title("🎬 MoodFlix 2.0 – Movies that Match Your Mood")
+
+st.markdown("Describe your mood or what kind of movie you want 👇")
+
+# ------------------------------
+# Emotion Detection
+# ------------------------------
+emotion_model = pipeline("sentiment-analysis", model="j-hartmann/emotion-english-distilroberta-base")
+
+user_input = st.text_input("Your mood / feeling:", placeholder="e.g. I feel happy and want something funny")
+
+if not user_input:
+    st.info("Enter a mood or description above to get started.")
+    st.stop()
+
+# Detect emotion
+detected = emotion_model(user_input)
+emotion = detected[0]["label"].lower()
+st.markdown(f"**Detected Emotion:** 🎭 *{emotion.capitalize()}*")
+
+# ------------------------------
+# Emotion → Genre Mapping
+# ------------------------------
+emotion_genre_map = {
+    "happy": ["comedy", "adventure", "romance"],
+    "sad": ["drama", "romance"],
+    "angry": ["action", "thriller"],
+    "bored": ["adventure", "fantasy"],
+    "excited": ["action", "sci-fi"],
+    "nostalgic": ["romance", "drama"],
+    "romantic": ["romance", "musical"]
+}
+
+genres = emotion_genre_map.get(emotion, ["drama", "adventure"])
+st.write(f"Recommended genres: {', '.join(genres)}")
+
+# ------------------------------
+# TMDb Movie Fetching
+# ------------------------------
+genre_dict = fetch_genres()
+genre_ids = [str(genre_dict.get(g.lower(), 18)) for g in genres]  # fallback to drama if missing
+movies = fetch_movies_by_genres(genre_ids)
+
+if not movies:
+    st.error("No movies found for this mood. Try a different emotion.")
+    st.stop()
+
+# ------------------------------
+# Display Movies + AI Posters
+# ------------------------------
+st.markdown("---")
+st.subheader(f"🎞️ Top {min(5, len(movies))} Movies for a {emotion.capitalize()} Mood")
+
+cols = st.columns(2)
+
+for idx, movie in enumerate(random.sample(movies, k=min(5, len(movies)))):
+    title = movie.get("title", "Unknown Title")
+    overview = movie.get("overview", "No description available.")
+    genre = genres[0]
+
+    # AI Poster
+    with cols[idx % 2]:
+        try:
+            poster_url = generate_ai_poster(title, genre, overview)
+            st.image(poster_url, caption=title, use_container_width=True)
+        except Exception:
+            if movie.get("poster_path"):
+                st.image(f"https://image.tmdb.org/t/p/w500{movie['poster_path']}", caption=title, use_container_width=True)
+            else:
+                st.warning("No poster available")
+
+        st.markdown(f"**🎬 {title}** – *{genre.capitalize()}*")
+        st.write(overview)
+        st.markdown("---")
+        
+
