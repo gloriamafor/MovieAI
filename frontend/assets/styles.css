@@ -1,0 +1,31 @@
+body {
+        background-color: #141414;
+        color: #fff;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .title {
+        text-align: center;
+        font-size: 2.8rem;
+        margin-top: 1rem;
+        color: #E50914;
+    }
+    
+    .subtitle {
+        text-align: center;
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .movie-title {
+        font-size: 1.1rem;
+        text-align: center;
+        margin-top: 0.5rem;
+    }
+    
+    .stButton>button {
+        background-color: #E50914;
+        color: white;
+        border-radius: 6px;
+        width: 100%;
+    }

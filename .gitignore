@@ -1,0 +1,14 @@
+.env
+.env.*
+*.key
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+ENV/
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+*.zip
