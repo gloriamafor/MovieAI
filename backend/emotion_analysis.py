@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Dict
+from typing import Dict, List, Tuple
 
 from transformers import pipeline
 
