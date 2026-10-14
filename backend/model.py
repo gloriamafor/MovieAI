@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
 from dotenv import load_dotenv
@@ -11,7 +11,7 @@ TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 
 
 class MovieRecommender:
-    """Simple TMDB client used by the frontend.
+    """Simple TMDB client used by the frontend.
 
     Supports:
       - search_movies: text search
@@ -22,155 +22,151 @@ class MovieRecommender:
       - get_movie_details: full detail for a movie ID
     """
 
-    # Mood -> genres (TMDB genre names). Kept to 1-3 defining genres per mood;
-    # these are combined with OR in discover_by_genre, so a mood returns films
-    # in ANY of its genres (a broad, on-vibe pool) rather than the tiny
-    # intersection you get from AND.
-    MOOD_GENRES: Dict[str, List[str]] = {
-        "happy": ["Comedy", "Family"],
-        "funny": ["Comedy"],
-        "cozy": ["Comedy", "Family", "Animation"],
-        "romantic": ["Romance"],
-        "sad": ["Drama"],
-        "thrilling": ["Thriller", "Adventure", "Mystery"],
-        "intense": ["Action", "Thriller", "Crime"],
-        "scary": ["Horror"],
-    }
+    MOOD_GENRES: Dict[str, List[str]] = {
+        "happy": ["Comedy", "Family"],
+        "funny": ["Comedy"],
+        "cozy": ["Comedy", "Family", "Animation"],
+        "romantic": ["Romance"],
+        "sad": ["Drama"],
+        "thrilling": ["Thriller", "Adventure", "Mystery"],
+        "intense": ["Action", "Thriller", "Crime"],
+        "scary": ["Horror"],
+    }
 
-    # Only surface films with at least this many votes, so recommendations are
-    # recognizable titles rather than obscure entries.
-    MIN_VOTE_COUNT = 200
+    # Only surface films with at least this many votes, so recommendations are
+    # recognizable titles rather than obscure entries.
+    MIN_VOTE_COUNT = 200
 
-    def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or TMDB_API_KEY
-        if not self.api_key:
-            raise ValueError(
-                "TMDB_API_KEY is not set. "
-                "Set it in your environment or in a .env file."
-            )
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key or TMDB_API_KEY
+        if not self.api_key:
+            raise ValueError(
+                "TMDB_API_KEY is not set. "
+                "Set it in your environment or in a .env file."
+            )
 
-        self.base_url = "https://api.themoviedb.org/3"
-        self.image_base = "https://image.tmdb.org/t/p/w500"
+        self.base_url = "https://api.themoviedb.org/3"
+        self.image_base = "https://image.tmdb.org/t/p/w500"
 
-    # ------------------------
-    # Internal helper
-    # ------------------------
-    def _get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        if params is None:
-            params = {}
-        params["api_key"] = self.api_key
+    # ------------------------
+    # Internal helper
+    # ------------------------
+    def _get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        if params is None:
+            params = {}
+        params["api_key"] = self.api_key
 
-        url = f"{self.base_url}{path}"
-        resp = requests.get(url, params=params, timeout=10)
-        resp.raise_for_status()
-        return resp.json()
+        url = f"{self.base_url}{path}"
+        resp = requests.get(url, params=params, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
 
-    def _shape(self, m: Dict[str, Any]) -> Dict[str, Any]:
-        poster_path = m.get("poster_path")
-        poster_url = f"{self.image_base}{poster_path}" if poster_path else None
-        return {
-            "id": m.get("id"),
-            "title": m.get("title"),
-            "overview": m.get("overview"),
-            "release_date": m.get("release_date"),
-            "vote_average": m.get("vote_average"),
-            "vote_count": m.get("vote_count"),
-            "original_language": m.get("original_language"),
-            "poster_url": poster_url,
-        }
+    def _shape(self, m: Dict[str, Any]) -> Dict[str, Any]:
+        poster_path = m.get("poster_path")
+        poster_url = f"{self.image_base}{poster_path}" if poster_path else None
+        return {
+            "id": m.get("id"),
+            "title": m.get("title"),
+            "overview": m.get("overview"),
+            "release_date": m.get("release_date"),
+            "vote_average": m.get("vote_average"),
+            "vote_count": m.get("vote_count"),
+            "original_language": m.get("original_language"),
+            "poster_url": poster_url,
+        }
 
-    # ------------------------
-    # Text search
-    # ------------------------
-    def search_movies(
-        self,
-        query: str,
-        year: Optional[int] = None,
-        page: int = 1,
-        include_adult: bool = False,
-        language: str = "en-US",
-    ) -> List[Dict[str, Any]]:
-        if not query.strip():
-            return []
+    # ------------------------
+    # Text search
+    # ------------------------
+    def search_movies(
+        self,
+        query: str,
+        year: Optional[int] = None,
+        page: int = 1,
+        include_adult: bool = False,
+        language: str = "en-US",
+    ) -> List[Dict[str, Any]]:
+        if not query.strip():
+            return []
 
-        params: Dict[str, Any] = {
-            "query": query,
-            "page": page,
-            "include_adult": include_adult,
-            "language": language,
-        }
-        if year:
-            params["year"] = year
+        params: Dict[str, Any] = {
+            "query": query,
+            "page": page,
+            "include_adult": include_adult,
+            "language": language,
+        }
+        if year:
+            params["year"] = year
 
-        data = self._get("/search/movie", params=params)
-        return [self._shape(m) for m in data.get("results", [])]
+        data = self._get("/search/movie", params=params)
+        return [self._shape(m) for m in data.get("results", [])]
 
-    # ------------------------
-    # Genres
-    # ------------------------
-    def get_genres(self) -> Dict[str, int]:
-        """Returns dict like {"Action": 28, "Comedy": 35, ...}"""
-        data = self._get("/genre/movie/list", params={"language": "en-US"})
-        genres = data.get("genres", [])
-        return {g["name"]: g["id"] for g in genres}
+    # ------------------------
+    # Genres
+    # ------------------------
+    def get_genres(self) -> Dict[str, int]:
+        """Returns dict like {"Action": 28, "Comedy": 35, ...}"""
+        data = self._get("/genre/movie/list", params={"language": "en-US"})
+        genres = data.get("genres", [])
+        return {g["name"]: g["id"] for g in genres}
 
-    # ------------------------
-    # Discover by country
-    # ------------------------
-    def discover_by_country(self, country_code: str) -> List[Dict[str, Any]]:
-        params = {
-            "with_origin_country": country_code.upper(),
-            "sort_by": "popularity.desc",
-        }
-        data = self._get("/discover/movie", params=params)
-        return [self._shape(m) for m in data.get("results", [])]
+    # ------------------------
+    # Discover by country
+    # ------------------------
+    def discover_by_country(self, country_code: str) -> List[Dict[str, Any]]:
+        params = {
+            "with_origin_country": country_code.upper(),
+            "sort_by": "popularity.desc",
+        }
+        data = self._get("/discover/movie", params=params)
+        return [self._shape(m) for m in data.get("results", [])]
 
-    # ------------------------
-    # Discover by genre
-    # ------------------------
-    def discover_by_genre(self, genre_ids: List[int]) -> List[Dict[str, Any]]:
-        if not genre_ids:
-            return []
+    # ------------------------
+    # Discover by genre
+    # ------------------------
+    def discover_by_genre(self, genre_ids: List[int]) -> List[Dict[str, Any]]:
+        if not genre_ids:
+            return []
 
-        params = {
-            # "|" is OR in TMDB: films in ANY of these genres.
-            # (",") would be AND: films in ALL of them at once, which is far
-            # too restrictive and was returning odd / empty results.
-            "with_genres": "|".join(str(g) for g in genre_ids),
-            "sort_by": "popularity.desc",
-            "vote_count.gte": self.MIN_VOTE_COUNT,
-            "language": "en-US",
-            "include_adult": "false",
-        }
-        data = self._get("/discover/movie", params=params)
-        return [self._shape(m) for m in data.get("results", [])]
+        params = {
+            # "|" is OR in TMDB: films in ANY of these genres.
+            # (",") would be AND: films in ALL of them at once, which is far
+            # too restrictive and was returning odd / empty results.
+            "with_genres": "|".join(str(g) for g in genre_ids),
+            "sort_by": "popularity.desc",
+            "vote_count.gte": self.MIN_VOTE_COUNT,
+            "language": "en-US",
+            "include_adult": "false",
+        }
+        data = self._get("/discover/movie", params=params)
+        return [self._shape(m) for m in data.get("results", [])]
 
-    # ------------------------
-    # Discover by mood
-    # ------------------------
-    def discover_by_mood(self, mood: str) -> List[Dict[str, Any]]:
-        mood = mood.lower()
-        if mood not in self.MOOD_GENRES:
-            return []
+    # ------------------------
+    # Discover by mood
+    # ------------------------
+    def discover_by_mood(self, mood: str) -> List[Dict[str, Any]]:
+        mood = mood.lower()
+        if mood not in self.MOOD_GENRES:
+            return []
 
-        genre_map = self.get_genres()
-        genre_names = self.MOOD_GENRES[mood]
-        genre_ids: List[int] = [
-            genre_map[name] for name in genre_names if name in genre_map
-        ]
-        if not genre_ids:
-            return []
-        return self.discover_by_genre(genre_ids)
+        genre_map = self.get_genres()
+        genre_names = self.MOOD_GENRES[mood]
+        genre_ids: List[int] = [
+            genre_map[name] for name in genre_names if name in genre_map
+        ]
+        if not genre_ids:
+            return []
+        return self.discover_by_genre(genre_ids)
 
-    # ------------------------
-    # Full details (optional)
-    # ------------------------
-    def get_movie_details(self, movie_id: int, language: str = "en-US") -> Dict[str, Any]:
-        data = self._get(f"/movie/{movie_id}", params={"language": language})
+    # ------------------------
+    # Full details (optional)
+    # ------------------------
+    def get_movie_details(self, movie_id: int, language: str = "en-US") -> Dict[str, Any]:
+        data = self._get(f"/movie/{movie_id}", params={"language": language})
 
-        poster_path = data.get("poster_path")
-        backdrop_path = data.get("backdrop_path")
+        poster_path = data.get("poster_path")
+        backdrop_path = data.get("backdrop_path")
 
-        data["poster_url"] = f"{self.image_base}{poster_path}" if poster_path else None
-        data["backdrop_url"] = f"{self.image_base}{backdrop_path}" if backdrop_path else None
-        return data
+        data["poster_url"] = f"{self.image_base}{poster_path}" if poster_path else None
+        data["backdrop_url"] = f"{self.image_base}{backdrop_path}" if backdrop_path else None
+        return data
