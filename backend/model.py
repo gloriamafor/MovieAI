@@ -51,6 +51,7 @@ class MovieRecommender:
     # ------------------------
     # Internal helper
     # ------------------------
+    # Sends a request to the TMDb API and returns the JSON response.
     def _get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if params is None:
             params = {}
@@ -61,6 +62,7 @@ class MovieRecommender:
         resp.raise_for_status()
         return resp.json()
 
+    # Converts a raw TMDb movie result into a clean dictionary for the frontend.
     def _shape(self, m: Dict[str, Any]) -> Dict[str, Any]:
         poster_path = m.get("poster_path")
         poster_url = f"{self.image_base}{poster_path}" if poster_path else None
@@ -78,6 +80,7 @@ class MovieRecommender:
     # ------------------------
     # Text search
     # ------------------------
+    # Searches TMDb for movies matching a user-entered title or keyword.
     def search_movies(
         self,
         query: str,
@@ -104,6 +107,7 @@ class MovieRecommender:
     # ------------------------
     # Genres
     # ------------------------
+    # Retrieves the list of all movie genres and maps each genre name to its TMDb ID.
     def get_genres(self) -> Dict[str, int]:
         """Returns dict like {"Action": 28, "Comedy": 35, ...}"""
         data = self._get("/genre/movie/list", params={"language": "en-US"})
@@ -113,6 +117,7 @@ class MovieRecommender:
     # ------------------------
     # Discover by country
     # ------------------------
+    # Finds popular movies from a specific country of origin.
     def discover_by_country(self, country_code: str) -> List[Dict[str, Any]]:
         params = {
             "with_origin_country": country_code.upper(),
@@ -124,6 +129,7 @@ class MovieRecommender:
     # ------------------------
     # Discover by genre
     # ------------------------
+    # Fetches movies matching one or more genre IDs and returns the most popular matches.
     def discover_by_genre(self, genre_ids: List[int]) -> List[Dict[str, Any]]:
         if not genre_ids:
             return []
@@ -144,6 +150,7 @@ class MovieRecommender:
     # ------------------------
     # Discover by mood
     # ------------------------
+    # Maps a mood such as happy or scary to genres and retrieves matching movies.
     def discover_by_mood(self, mood: str) -> List[Dict[str, Any]]:
         mood = mood.lower()
         if mood not in self.MOOD_GENRES:
@@ -161,6 +168,7 @@ class MovieRecommender:
     # ------------------------
     # Full details (optional)
     # ------------------------
+    # Fetches detailed metadata for a specific movie, including poster and backdrop URLs.
     def get_movie_details(self, movie_id: int, language: str = "en-US") -> Dict[str, Any]:
         data = self._get(f"/movie/{movie_id}", params={"language": language})
 

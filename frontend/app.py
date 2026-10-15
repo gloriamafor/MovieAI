@@ -12,6 +12,7 @@ from backend.emotion_analysis import detect_emotion_and_mood
 # ------------------------
 # Page config & optional CSS
 # ------------------------
+# Sets the app title, page layout, and optional custom styling for the UI.
 st.set_page_config(page_title="Movie Generator AI", layout="wide")
 
 css_path = os.path.join(os.path.dirname(__file__), "styles.css")
@@ -22,6 +23,7 @@ if os.path.exists(css_path):
 # ------------------------
 # Backend client
 # ------------------------
+# Creates a cached TMDb recommender instance so the app reuses one backend client.
 @st.cache_resource(show_spinner=False)
 def get_recommender():
     return MovieRecommender()
@@ -31,6 +33,7 @@ recommender = get_recommender()
 # ------------------------
 # UI Layout
 # ------------------------
+# Builds the main Streamlit interface and defines the top-level navigation tabs.
 st.title("🎬 Movie Generator AI")
 st.markdown(
     "Powered by TMDB + Emotion AI. Search by title, discover by country/genre/mood, "
@@ -44,6 +47,7 @@ tab_search, tab_country, tab_genre, tab_mood, tab_emotion = st.tabs(
 # ---------------------------------
 # 🔍 SEARCH TAB
 # ---------------------------------
+# Lets the user search TMDb by title or keyword and see the movie results in cards.
 with tab_search:
     st.subheader("Search TMDB by Title or Keyword")
 
@@ -119,6 +123,7 @@ with tab_search:
 # ---------------------------------
 # 🌍 COUNTRY TAB
 # ---------------------------------
+# Shows popular movies from a selected country of origin.
 with tab_country:
     st.subheader("Discover Movies by Country")
 
@@ -157,6 +162,7 @@ with tab_country:
 # ---------------------------------
 # 🎭 GENRE TAB
 # ---------------------------------
+# Allows the user to select one or more genres and retrieve matching movie recommendations.
 with tab_genre:
     st.subheader("Discover Movies by Genre")
 
@@ -199,6 +205,7 @@ with tab_genre:
 # ---------------------------------
 # 😊 MOOD TAB (manual mood selection)
 # ---------------------------------
+# Lets the user pick a mood manually and fetch matching movies without using the AI model.
 with tab_mood:
     st.subheader("Discover Movies by Mood (Manual Choice)")
 
@@ -237,6 +244,7 @@ with tab_mood:
 # ---------------------------------
 # 🧠 EMOTION TAB (text → emotion → mood → movies)
 # ---------------------------------
+# Accepts free-form text, detects the user emotion, maps it to a movie mood, and recommends movies.
 with tab_emotion:
     st.subheader("Emotion-Based Recommendations")
 

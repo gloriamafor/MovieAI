@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 
 from transformers import pipeline
 
-
+# Loads the Hugging Face emotion model once and reuses it for future requests.
 @lru_cache(maxsize=1)
 def _get_emotion_pipeline():
     """
@@ -14,7 +14,7 @@ def _get_emotion_pipeline():
         model="j-hartmann/emotion-english-distilroberta-base",
     )
 
-# Raw model emotion -> mood (used only when the user does NOT state a vibe)
+# Maps the model's raw emotion labels to a movie-friendly mood when no explicit vibe is requested.
 EMOTION_TO_MOOD: Dict[str, str] = {
     "joy": "happy",
     "sadness": "sad",
@@ -25,8 +25,8 @@ EMOTION_TO_MOOD: Dict[str, str] = {
     "neutral": "cozy",
 }
 
-# Desired-vibe keywords -> mood. This captures what the user WANTS to watch,
-# which is often different from (even the opposite of) how they currently feel.
+# Keywords that describe the type of movie the user wants to watch.
+# This helps the app prioritize the user's desired vibe over their current emotion.
 MOOD_KEYWORDS: Dict[str, List[str]] = {
     "funny": ["funny", "comedy", "hilarious", "laugh", "humor", "humour",
               "silly", "goofy", "comedic"],
@@ -49,10 +49,12 @@ MOOD_KEYWORDS: Dict[str, List[str]] = {
               "terrifying", "haunted", "slasher", "frightful"],
 }
 
+# Terms that signal a negation, so the app does not recommend a mood the user explicitly says to avoid.
 NEGATORS = {"not", "no", "nothing", "dont", "don't", "avoid",
             "without", "except", "nope", "never"}
 
 
+# Detects whether the user explicitly asks for a movie vibe such as "funny" or "scary".
 def _detect_requested_mood(text: str) -> Tuple[str, str]:
     """
     Look for an explicitly requested vibe in the text.
@@ -84,6 +86,8 @@ def _detect_requested_mood(text: str) -> Tuple[str, str]:
     return best, hit[best]
 
 
+# Chooses the final movie mood by checking explicit user preferences first,
+# then falling back to emotion detection when no vibe is requested.
 def detect_emotion_and_mood(text: str) -> Dict[str, str]:
     """
     Decide which mood to use for recommendations, in two layers:

@@ -11,6 +11,7 @@ TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
+# Confirms the TMDb API key exists before making any movie-data requests.
 def _require_tmdb_key() -> str:
     if not TMDB_API_KEY:
         raise RuntimeError(
@@ -19,6 +20,7 @@ def _require_tmdb_key() -> str:
     return TMDB_API_KEY
 
 
+# Fetches the list of TMDb genres and converts them into a name-to-ID lookup table.
 def fetch_genres() -> Dict[str, int]:
     """
     Fetch TMDb genres and return a mapping: genre_name_lower -> genre_id
@@ -32,6 +34,7 @@ def fetch_genres() -> Dict[str, int]:
     return {g["name"].lower(): g["id"] for g in data.get("genres", [])}
 
 
+# Retrieves popular movies from TMDb for one or more selected genres.
 def fetch_movies_by_genres(
     genres: Iterable[int] | Iterable[str], page: int = 1
 ) -> List[Dict[str, Any]]:
@@ -60,6 +63,7 @@ def fetch_movies_by_genres(
     return data.get("results", [])
 
 
+# Uses OpenAI's image model to generate a cinematic movie poster based on the title, genre, and summary.
 def generate_ai_poster(title: str, genre: str, overview: str) -> str | None:
     """
     Use OpenAI's image API to generate a movie poster.
